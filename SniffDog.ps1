@@ -4,7 +4,9 @@
     [Parameter(Mandatory=$false)]
     [String]$UserName = "Tyredas", 
     [Parameter(Mandatory=$false)]
-    [String]$WorkerName = "Sniffdog", 
+    [String]$WorkerName = "Beeboop",
+    [Parameter(Mandatory=$false)]
+    [String]$RigName = "Sniffdog",
     [Parameter(Mandatory=$false)]
     [Int]$API_ID = 0, 
     [Parameter(Mandatory=$false)]
@@ -30,7 +32,7 @@
     [Parameter(Mandatory=$false)]
     [Array]$PoolName = $null, 
     [Parameter(Mandatory=$false)]
-    [Array]$Currency = ("EUR"), #i.e. GBP,EUR,ZEC,ETH ect.
+    [Array]$Currency = ("USD"), #i.e. GBP,EUR,ZEC,ETH ect.
     [Parameter(Mandatory=$false)]
     [Array]$Passwordcurrency = ("BTC"), #i.e. BTC,LTC,ZEC,ETH ect.
     [Parameter(Mandatory=$false)]
@@ -66,8 +68,8 @@ if(Test-Path "Stats"){Get-ChildItemContent "Stats" | ForEach {$Stat = Set-Stat $
 #Set donation parameters
 $LastDonated = (Get-Date).AddDays(-1).AddHours(1)
 $WalletDonate = "1AMQg6m9GPDN9HGuC3wJGpSuiZr1XQXjxi"
-$UserNameDonate = "1AMQg6m9GPDN9HGuC3wJGpSuiZr1XQXjxi"
-$WorkerNameDonate = "Sniffdog"
+$UserNameDonate = "Tyredas"
+$WorkerNameDonate = "Beeboop"
 $WalletBackup = $Wallet
 $UserNameBackup = $UserName
 $WorkerNameBackup = $WorkerName
@@ -90,11 +92,24 @@ while($true)
         $WorkerName = $WorkerNameBackup
         $LastDonated = Get-Date
     }
-    Write-host "Loading BTC rate from 'api.coinbase.com'.." -foregroundcolor "Yellow"
-    $Rates = Invoke-RestMethod "https://api.coinbase.com/v2/exchange-rates?currency=BTC" -UseBasicParsing | Select-Object -ExpandProperty data | Select-Object -ExpandProperty rates
-    $Currency | Where-Object {$Rates.$_} | ForEach-Object {$Rates | Add-Member $_ ([Double]$Rates.$_) -Force}
-    Write-Host -ForegroundColor Yellow "Last Refresh: $(Get-Date)"
-
+    
+   try {
+        Write-Host "Sniffin for updates from Coinbase..." -foregroundcolor "Yellow"
+        $Rates = Invoke-RestMethod "https://api.coinbase.com/v2/exchange-rates?currency=BTC" -UseBasicParsing | Select-Object -ExpandProperty data | Select-Object -ExpandProperty rates
+        $Currency | Where-Object {$Rates.$_} | ForEach-Object {$Rates | Add-Member $_ ([Double]$Rates.$_) -Force}
+    }
+    catch {
+        Write-Host -Level Warn "Pee's on Coinbase. "
+        
+        
+        Write-Host -ForegroundColor Yellow "Last Refresh: $(Get-Date)"
+        Write-host "tries Sniffin at Cryptonator.." -foregroundcolor "Yellow"
+       $Rates = [PSCustomObject]@{}
+       $Currency | ForEach {$Rates | Add-Member $_ (Invoke-WebRequest "https://api.cryptonator.com/api/ticker/btc-$_" -UseBasicParsing | ConvertFrom-Json).ticker.price}
+     
+  }  
+    
+    
     #Load the Stats
     $Stats = [PSCustomObject]@{}
     if(Test-Path "Stats"){Get-ChildItemContent "Stats" | ForEach {$Stats | Add-Member $_.Name $_.Content}}
@@ -313,9 +328,34 @@ while($true)
         @{Label = "Launched"; Expression={Switch($_.Activated){0 {"Never"} 1 {"Once"} Default {"$_ Times"}}}}, 
         @{Label = "Command"; Expression={"$($_.Path.TrimStart((Convert-Path ".\"))) $($_.Arguments)"}}
     ) | Out-Host
+    
+    #Display profit comparison
+    if (($BestMiners_Combo | Where-Object Profit -EQ $null | Measure-Object).Count -eq 0) {
+        $MinerComparisons = 
+        [PSCustomObject]@{"Miner" = "Sniffdog.. sniffs out!"}, 
+        [PSCustomObject]@{"Miner" = $BestMiners_Combo_Comparison | ForEach-Object {"$($_.Name)-$($_.Algorithm -join "/")"}}
+            
+        $BestMiners_Combo_Stat = Set-Stat -Name "Profit" -Value ($BestMiners_Combo | Measure-Object Profit -Sum).Sum
+
+        $MinerComparisons_Profit = $BestMiners_Combo_Stat.Day, ($BestMiners_Combo_Comparison | Measure-Object Profit_Comparison -Sum).Sum
+
+        $MinerComparisons_MarginOfError = $BestMiners_Combo_Stat.Day_Fluctuation, ($BestMiners_Combo_Comparison | ForEach-Object {$_.Profit_MarginOfError * (& {if ($MinerComparisons_Profit[1]) {$_.Profit_Comparison / $MinerComparisons_Profit[1]}else {1}})} | Measure-Object -Sum).Sum
+
+        $Currency | ForEach-Object {
+            $MinerComparisons[0] | Add-Member $_ ("{0:N5} ±{1:P0} ({2:N5}-{3:N5})" -f ($MinerComparisons_Profit[0] * $Rates.$_), $MinerComparisons_MarginOfError[0], (($MinerComparisons_Profit[0] * $Rates.$_) / (1 + $MinerComparisons_MarginOfError[0])), (($MinerComparisons_Profit[0] * $Rates.$_) * (1 + $MinerComparisons_MarginOfError[0])))
+            $MinerComparisons[1] | Add-Member $_ ("{0:N5} ±{1:P0} ({2:N5}-{3:N5})" -f ($MinerComparisons_Profit[1] * $Rates.$_), $MinerComparisons_MarginOfError[1], (($MinerComparisons_Profit[1] * $Rates.$_) / (1 + $MinerComparisons_MarginOfError[1])), (($MinerComparisons_Profit[1] * $Rates.$_) * (1 + $MinerComparisons_MarginOfError[1])))
+        }
+
+        if ($MinerComparisons_Profit[0] -gt $MinerComparisons_Profit[1]) {
+            $MinerComparisons_Range = ($MinerComparisons_MarginOfError | Measure-Object -Average | Select-Object -ExpandProperty Average), (($MinerComparisons_Profit[0] - $MinerComparisons_Profit[1]) / $MinerComparisons_Profit[1]) | Measure-Object -Minimum | Select-Object -ExpandProperty Minimum
+            Write-Host -BackgroundColor Yellow -ForegroundColor Black "SniffDog sniffs $([Math]::Round((((($MinerComparisons_Profit[0]-$MinerComparisons_Profit[1])/$MinerComparisons_Profit[1])-$MinerComparisons_Range)*100)))% and upto $([Math]::Round((((($MinerComparisons_Profit[0]-$MinerComparisons_Profit[1])/$MinerComparisons_Profit[1])+$MinerComparisons_Range)*100)))% more profit than the fastest (listed) miner: "
+        }
+
+        $MinerComparisons | Out-Host
+    }
 
 
-#Do nothing for 15 seconds, and check if ccminer is actually running
+   #Do nothing for 15 seconds, and check if ccminer is actually running
     $CheckMinerInterval = 15
     Sleep ($CheckMinerInterval)
     $ActiveMinerPrograms | ForEach {
@@ -336,6 +376,10 @@ while($true)
             }
         }
     }
+    
+    #Reduce Memory
+    Get-Job -State Completed | Remove-Job
+    [GC]::Collect()
 
     #Do nothing for a set Interval to allow miner to run
     If ([int]$Interval -gt [int]$CheckMinerInterval) {

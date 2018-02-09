@@ -1,16 +1,14 @@
 ﻿
 
-$Threads = 3
+$Threads = 1
 
 $Path = ".\Bin\Excavator\excavator.exe"
 $Uri = "https://github.com/nicehash/excavator/releases/download/v1.4.3a/excavator_v1.4.3a_NVIDIA_Win64.zip"
 
 $Commands = [PSCustomObject]@{
-    #"equihash" = @() 
-    #"lbry" = @() 
-    #"lyra2rev2" = @() 
-    #"nist5" = @()
-    #"keccak" = @()
+    
+    #"neoscrypt" = @() 
+    
 }
 
 $Name = Get-Item $MyInvocation.MyCommand.Path | Select-Object -ExpandProperty BaseName

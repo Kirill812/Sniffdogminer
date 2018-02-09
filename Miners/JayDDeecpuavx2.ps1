@@ -1,11 +1,10 @@
-$Path = ".\Bin\NVIDIA-SP-mod\ccminer.exe"
-$Uri = "https://github.com/sp-hash/ccminer/releases/download/1.5.81/release81.7z"
+﻿$Path = ".\Bin\CPU-JayDDee\cpuminer-avx2.exe"
+$Uri = "https://github.com/JayDDee/cpuminer-opt/files/1704854/cpuminer-opt-3.8.1-windows.zip"
 
 $Commands = [PSCustomObject]@{
     #"bitcore" = "" #Bitcore
     #"blake2s" = "" #Blake2s
     #"blakecoin" = "" #Blakecoin
-    #"c11" = "" #C11
     #"vanilla" = "" #BlakeVanilla
     #"cryptonight" = "" #Cryptonight
     #"decred" = "" #Decred
@@ -31,22 +30,23 @@ $Commands = [PSCustomObject]@{
     #"x11evo" = "" #X11evo
     #"x17" = "" #X17
     #"yescrypt" = "" #Yescrypt
-    #"phi" = "" #Phi
+    "m7m" = "" #M7M
+    #"lyra2h" = "" #Lyra2h
+    #"yescryptr8" = "" #Yescryptr8
+    "x16r" = "" #Ravencoin
 }
 
 $Name = (Get-Item $script:MyInvocation.MyCommand.Path).BaseName
 
 $Commands | Get-Member -MemberType NoteProperty | Select-Object -ExpandProperty Name | ForEach-Object {
     [PSCustomObject]@{
-        Type = "NVIDIA"
+        Type = "CPU"
         Path = $Path
         Arguments = "-a $_ -o stratum+tcp://$($Pools.(Get-Algorithm($_)).Host):$($Pools.(Get-Algorithm($_)).Port) -u $($Pools.(Get-Algorithm($_)).User) -p $($Pools.(Get-Algorithm($_)).Pass)$($Commands.$_)"
         HashRates = [PSCustomObject]@{(Get-Algorithm($_)) = $Stats."$($Name)_$(Get-Algorithm($_))_HashRate".Day}
-        API = "Wrapper"
-        Port = 4068
-        Wrap = $true
+        API = "Ccminer"
+        Port = 4048
+        Wrap = $false
         URI = $Uri
-        PrerequisitePath = "$env:SystemRoot\System32\msvcr120.dll"
-        PrerequisiteURI = "http://download.microsoft.com/download/2/E/6/2E61CFA4-993B-4DD4-91DA-3737CD5CD6E3/vcredist_x64.exe"
     }
 }

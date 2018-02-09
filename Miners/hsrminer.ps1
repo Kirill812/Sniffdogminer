@@ -1,26 +1,12 @@
-﻿$Path = '.\Bin\NVIDIA-KlausT\ccminer.exe'
-$Uri = 'https://github.com/KlausT/ccminer/releases/download/8.20/ccminer-820-cuda91-x64.zip'
+﻿$Path = '.\Bin\NVIDIAHsrminer\hsrminer_neoscrypt_fork_hp.exe'
+$Uri = 'https://github.com/justaminer/hsrm-fork/raw/master/hsrminer_neoscrypt_fork_hp.zip'
 
 $Name = (Get-Item $script:MyInvocation.MyCommand.Path).BaseName
 
 $Algorithms = [PSCustomObject]@{
-    #Lyra2z = 'lyra2z' #not supported
-    #Equihash = 'equihash' #not supported
-    #Cryptonight = 'cryptonight' #not supported
-    #Ethash = 'ethash' #not supported
-    #Sia = 'sia' #use TpruvoT
-    #Yescrypt = 'yescrypt' #use TpruvoT
-    #BlakeVanilla = 'vanilla'
-    #Lyra2RE2 = 'lyra2v2' 
-    #Skein = 'skein' #use TpruvoT
-    #Qubit = 'qubit' #use TpruvoT
-    NeoScrypt = 'neoscrypt'
-    #X11 = 'x11' #use TpruvoT
-    #MyriadGroestl = 'myr-gr'
-    Groestl = 'groestl'
-    #Keccak = 'keccak' 
-    #Scrypt = 'scrypt' #use TpruvoT
-    #Nist5 = 'nist5'
+    
+    #NeoScrypt = 'neoscrypt'
+    
 }
 
 $Optimizations = [PSCustomObject]@{
@@ -47,7 +33,7 @@ $Algorithms | Get-Member -MemberType NoteProperty | Select -ExpandProperty Name 
     [PSCustomObject]@{
         Type = 'NVIDIA'
         Path = $Path
-        Arguments = -Join ('-a ', $Algorithms.$_, ' -o stratum+tcp://$($Pools.', $_, '.Host):$($Pools.', $_, '.Port) -b 0.0.0.0:4068 -u $($Pools.', $_, '.User) -p $($Pools.', $_, '.Pass)', $Optimizations.$_)
+        Arguments = -Join ('-a ', $Algorithms.$_, ' -o stratum+tcp://$($Pools.', $_, '.Host):$($Pools.', $_, '.Port) -u $($Pools.', $_, '.User) -p $($Pools.', $_, '.Pass)', $Optimizations.$_)
         HashRates = [PSCustomObject]@{$_ = -Join ('$($Stats.', $Name, '_', $_, '_HashRate.Day)')}
         API = 'Ccminer'
         Port = 4068

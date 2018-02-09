@@ -1,5 +1,5 @@
-﻿$Path = '.\Bin\NVIDIA-Poly\ccminer.exe'
-$Uri = 'https://github.com/punxsutawneyphil/ccminer/releases/download/polytimosv2/ccminer-polytimos_v2.zip'
+﻿$Path = '.\Bin\Ethash-Claymore\\EthDcrMiner64.exe'
+
 
 $Name = (Get-Item $script:MyInvocation.MyCommand.Path).BaseName
 
@@ -7,7 +7,7 @@ $Algorithms = [PSCustomObject]@{
     #Lyra2z = 'lyra2z'
     #Equihash = 'equihash' #not supported
     #Cryptonight = 'cryptonight'
-    #Ethash = 'ethash' #not supported
+    Ethash = 'ethash' #not supported
     #Sia = 'sia'
     #Yescrypt = 'yescrypt'
     #BlakeVanilla = 'vanilla'
@@ -36,15 +36,18 @@ $Algorithms = [PSCustomObject]@{
     #Tribus = 'tribus'
     #Phi = 'phi'
     #Hsr = 'hsr'
-    Polytimos = 'poly'
+    #Polytimos = 'polytimos'
+    #Decred = 'decred'
+    #Eth = 'eth'
+    
 }
 
 $Optimizations = [PSCustomObject]@{
-    Lyra2z = ' --api-remote --api-allow=0/0'
+    Lyra2z = ''
     Equihash = ''
     Cryptonight = ' --api-remote --api-allow=0/0'
-    Ethash = ''
-    Sia = ''
+    Ethash = ' -esm 2 -allpools 1 -allcoins 1 -platform 2'
+    Sia = ' -esm 2'
     Yescrypt = ''
     BlakeVanilla = ''
     Lyra2RE2 = ''
@@ -58,7 +61,7 @@ $Optimizations = [PSCustomObject]@{
     Scrypt = ''
     Bitcore = ' --api-remote --api-allow=0/0'
     Blake2s = ''
-    Sib = ''
+    Sib = ' -dcoin sc'
     X17 = ''
     Quark = ''
     Hmq1725 = ' --api-remote --api-allow=0/0'
@@ -72,7 +75,10 @@ $Optimizations = [PSCustomObject]@{
     Tribus = ' --api-remote --api-allow=0/0'
     Phi = ' --api-remote --api-allow=0/0'
     Hsr = ' --api-remote --api-allow=0/0'
-    Polytimos = '' 
+    Polytimos = ' --api-remote --api-allow=0/0'
+    Decred = ' --api-remote --api-allow=0/0'
+    Eth = ' -esm 3 -allpools 1 -allcoins 1 -platform 2'
+    
     
 }
 
@@ -80,13 +86,11 @@ $Algorithms | Get-Member -MemberType NoteProperty | Select -ExpandProperty Name 
     [PSCustomObject]@{
         Type = 'NVIDIA'
         Path = $Path
-        Arguments = -Join ('-a ', $Algorithms.$_, ' -o stratum+tcp://$($Pools.', $_, '.Host):$($Pools.', $_, '.Port) -u $($Pools.', $_, '.User) -p $($Pools.', $_, '.Pass)', $Optimizations.$_)
-        HashRates = [PSCustomObject]@{$_ = -Join ('$($Stats.', $Name, '_', $_, '_HashRate.Day)')}
-        API = 'Ccminer'
-        Port = 4068
+        Arguments = -Join ( '-r -1 -mport -23333 -epool $($Pools.', $_, '.Host):$($Pools.', $_, '.Port) -ewal $($Pools.', $_, '.User) -eworker $($Pools.', $_, '.User)  -epsw $($Pools.', $_, '.Pass)', $Optimizations.$_)
+        HashRates = [PSCustomObject]@{$_ = -Join ('$($Stats.', $Name, '_', $_, '_HashRate.Week)')}
+        API = 'Claymore'
+        Port = 23333
         Wrap = $false
         URI = $Uri
-        PrerequisitePath = "$env:SystemRoot\System32\msvcr120.dll"
-        PrerequisiteURI = "http://download.microsoft.com/download/2/E/6/2E61CFA4-993B-4DD4-91DA-3737CD5CD6E3/vcredist_x64.exe"
     }
 }
