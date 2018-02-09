@@ -1,5 +1,5 @@
-$Path = ".\Bin\NVIDIA-krnlx\ccminer_x86.exe"
-$Uri = "https://github.com/Sniffdog/ccminer-xevan/releases/download/1.0/Ccminer_x86_krnlx.zip"
+$Path = ".\Bin\NVIDIA-Palgin\ccminer.exe"
+$Uri = "https://github.com/krnlx/ccminer-xevan/releases/download/0.1/ccminer.exe"
 
 $Commands = [PSCustomObject]@{
     #"bitcore" = "" #Bitcore
@@ -44,7 +44,7 @@ $Commands | Get-Member -MemberType NoteProperty | Select -ExpandProperty Name | 
         Type = "NVIDIA"
         Path = $Path
         Arguments = "-a $_ -o stratum+tcp://$($Pools.(Get-Algorithm($_)).Host):$($Pools.(Get-Algorithm($_)).Port) -u $($Pools.(Get-Algorithm($_)).User) -p $($Pools.(Get-Algorithm($_)).Pass)$($Commands.$_)"
-        HashRates = [PSCustomObject]@{(Get-Algorithm($_)) = $Stats."$($Name)_$(Get-Algorithm($_))_HashRate".Day}
+        HashRates = [PSCustomObject]@{(Get-Algorithm($_)) = $Stats."$($Name)_$(Get-Algorithm($_))_HashRate".Week}
         API = "Ccminer"
         Port = 4068
         Wrap = $false
