@@ -1,25 +1,31 @@
 ﻿. .\Include.ps1
 
-try
-{
-    $Zpool_Request = Invoke-WebRequest "http://www.zpool.ca/api/status" -UseBasicParsing | ConvertFrom-Json
-}
-catch
-{
-    return
-}
-
-if(-not $Zpool_Request){return}
-
-$Name = (Get-Item $script:MyInvocation.MyCommand.Path).BaseName
+$Name = Get-Item $MyInvocation.MyCommand.Path | Select-Object -ExpandProperty BaseName 
+ 
+ 
+$Zpool_Request = [PSCustomObject]@{} 
+ 
+ 
+ try { 
+     $Zpool_Request = Invoke-RestMethod "http://www.zpool.ca/api/status" -UseBasicParsing -TimeoutSec 10 -ErrorAction Stop 
+ } 
+ catch { 
+     Write-Warning "Sniffdog howled at ($Name) for a failed API check. " 
+     return 
+ } 
+ 
+ if (($Zpool_Request | Get-Member -MemberType NoteProperty -ErrorAction Ignore | Measure-Object Name).Count -le 1) { 
+     Write-Warning "SniffDog sniffed near ($Name) but ($Name) Pool API had no scent. " 
+     return
+ }     
 
 $Location = "US"
 
-$Zpool_Request | Get-Member -MemberType NoteProperty | Select -ExpandProperty Name | foreach {
+$Zpool_Request | Get-Member -MemberType NoteProperty -ErrorAction Ignore | Select-Object -ExpandProperty Name | Where-Object {$Zpool_Request.$_.hashrate -gt 0} | foreach {
     $Zpool_Host = "$_.mine.zpool.ca"
     $Zpool_Port = $Zpool_Request.$_.port
     $Zpool_Algorithm = Get-Algorithm $Zpool_Request.$_.name
-    $Zpool_Coin = "Unknown"
+    $Zpool_Coin = $Zpool_Request.$_.coins
 
     $Divisor = 1000000
 	
@@ -27,10 +33,10 @@ $Zpool_Request | Get-Member -MemberType NoteProperty | Select -ExpandProperty Na
     {
         "equihash"{$Divisor /= 1000}
         "blake2s"{$Divisor *= 1000}
-	"blakecoin"{$Divisor *= 1000}
+	    "blakecoin"{$Divisor *= 1000}
         "decred"{$Divisor *= 1000}
-	"x11"{$Divisor *= 100}
-	"keccak"{$Divisor *= 1000}
+	    "x11"{$Divisor *= 100}
+	    "keccak"{$Divisor *= 1000}
     }
 
     if((Get-Stat -Name "$($Name)_$($Zpool_Algorithm)_Profit") -eq $null){$Stat = Set-Stat -Name "$($Name)_$($Zpool_Algorithm)_Profit" -Value ([Double]$Zpool_Request.$_.estimate_last24h/$Divisor)}
@@ -40,7 +46,7 @@ $Zpool_Request | Get-Member -MemberType NoteProperty | Select -ExpandProperty Na
     {
         [PSCustomObject]@{
             Algorithm = $Zpool_Algorithm
-            Info = $Zpool_Coin
+            Info = "$Zpool_Coin-coin(s)"
             Price = $Stat.Live
             StablePrice = $Stat.Week
             MarginOfError = $Stat.Fluctuation
@@ -48,7 +54,7 @@ $Zpool_Request | Get-Member -MemberType NoteProperty | Select -ExpandProperty Na
             Host = $Zpool_Host
             Port = $Zpool_Port
             User = $Wallet
-            Pass = "ID=$Workername,c=$Passwordcurrency"
+            Pass = "ID=$RigName,c=$Passwordcurrency"
             Location = $Location
             SSL = $false
         }

@@ -399,9 +399,9 @@ function Get-HashRate {
             {
                 do
                 {
-                    $HashRate = Get-Content ".\Wrapper_$Port.txt"
+                    $HashRate = Get-Content ".\Wrapper_.txt"
                 
-                    if($HashRate -eq $null){sleep $Interval; $HashRate = Get-Content ".\Wrapper_$Port.txt"}
+                    if($HashRate -eq $null){sleep $Interval; $HashRate = Get-Content ".\Wrapper_.txt"}
 
                     if($HashRate -eq $null){$HashRates = @(); break}
 
@@ -521,23 +521,17 @@ function Expand-WebRequest {
         [Parameter(Mandatory=$true)]
         [String]$Path
     )
-    Try 
-	{
-		$FolderName_Old = ([IO.FileInfo](Split-Path $Uri -Leaf)).BaseName
-		$FolderName_New = Split-Path $Path -Leaf
-		$FileName = "$FolderName_New$(([IO.FileInfo](Split-Path $Uri -Leaf)).Extension)"
+    $FolderName_Old = ([IO.FileInfo](Split-Path $Uri -Leaf)).BaseName
+    $FolderName_New = Split-Path $Path -Leaf
+    $FileName = "$FolderName_New$(([IO.FileInfo](Split-Path $Uri -Leaf)).Extension)"
 
-		if(Test-Path $FileName){Remove-Item $FileName}
-		if(Test-Path "$(Split-Path $Path)\$FolderName_New"){Remove-Item "$(Split-Path $Path)\$FolderName_New" -Recurse}
-		if(Test-Path "$(Split-Path $Path)\$FolderName_Old"){Remove-Item "$(Split-Path $Path)\$FolderName_Old" -Recurse}
+    if(Test-Path $FileName){Remove-Item $FileName}
+    if(Test-Path "$(Split-Path $Path)\$FolderName_New"){Remove-Item "$(Split-Path $Path)\$FolderName_New" -Recurse}
+    if(Test-Path "$(Split-Path $Path)\$FolderName_Old"){Remove-Item "$(Split-Path $Path)\$FolderName_Old" -Recurse}
 
-		Invoke-WebRequest $Uri -OutFile $FileName -UseBasicParsing
-		Start-Process "7z" "x $FileName -o$(Split-Path $Path)\$FolderName_Old -y -spe" -Wait
-		Rename-Item "$(Split-Path $Path)\$FolderName_Old" "$FolderName_New"
-	}
-	Catch {
-		Write-Host "Expand-WebRequest error at Uri= $Uri"
-	}
+    Invoke-WebRequest $Uri -OutFile $FileName -UseBasicParsing
+    Start-Process "7z" "x $FileName -o$(Split-Path $Path)\$FolderName_Old -y -spe" -Wait
+    Rename-Item "$(Split-Path $Path)\$FolderName_Old" "$FolderName_New"
 }
 
 function Get-Algorithm {
